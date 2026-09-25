@@ -2,7 +2,7 @@
   "name": "minals",
   "productName": "Minals",
   "version": "0.1.0",
-  "description": "Ein Claude-gepowerter, Jarvis-artiger Sprachassistent fuer Linux",
+  "description": "Ein lokal laufender, Jarvis-artiger Sprachassistent fuer Linux (powered by Ollama)",
   "main": "src/main/index.js",
   "author": "Minals Project",
   "license": "MIT",
@@ -14,7 +14,6 @@
     "build:flatpak": "electron-builder --linux flatpak"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.32.1",
     "electron-store": "^8.2.0"
   },
   "devDependencies": {
@@ -49,8 +48,7 @@
         "--device=dri",
         "--filesystem=xdg-documents",
         "--filesystem=xdg-download",
-        "--talk-name=org.freedesktop.Notifications",
-        "--talk-name=org.freedesktop.secrets"
+        "--talk-name=org.freedesktop.Notifications"
       ]
     }
   }

@@ -5,10 +5,8 @@ contextBridge.exposeInMainWorld('minals', {
     get: () => ipcRenderer.invoke('settings:get'),
     set: (partial) => ipcRenderer.invoke('settings:set', partial)
   },
-  secrets: {
-    setApiKey: (apiKey) => ipcRenderer.invoke('secrets:setApiKey', apiKey),
-    hasApiKey: () => ipcRenderer.invoke('secrets:hasApiKey'),
-    clearApiKey: () => ipcRenderer.invoke('secrets:clearApiKey')
+  llm: {
+    listModels: () => ipcRenderer.invoke('llm:listModels')
   },
   chat: {
     send: (history, text) => ipcRenderer.invoke('chat:send', { history, text }),

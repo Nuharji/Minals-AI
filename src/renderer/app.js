@@ -258,8 +258,11 @@ const settingsOverlay = document.getElementById('settingsOverlay');
 const settingsBtn = document.getElementById('settingsBtn');
 const closeSettingsBtn = document.getElementById('closeSettingsBtn');
 
-const apiKeyInput = document.getElementById('apiKeyInput');
-const apiKeyStatus = document.getElementById('apiKeyStatus');
+const ollamaHost = document.getElementById('ollamaHost');
+const ollamaModelSelect = document.getElementById('ollamaModelSelect');
+const refreshModelsBtn = document.getElementById('refreshModelsBtn');
+const toolsEnabled = document.getElementById('toolsEnabled');
+const ollamaStatus = document.getElementById('ollamaStatus');
 const sttBinaryPath = document.getElementById('sttBinaryPath');
 const sttModelPath = document.getElementById('sttModelPath');
 const ttsBinaryPath = document.getElementById('ttsBinaryPath');
@@ -267,8 +270,34 @@ const ttsVoicePath = document.getElementById('ttsVoicePath');
 const voiceEnabled = document.getElementById('voiceEnabled');
 const allowedShellCommands = document.getElementById('allowedShellCommands');
 
+async function refreshModelList(selectedModel) {
+  ollamaStatus.textContent = 'Suche laufenden Ollama-Server…';
+  const { models, error } = await window.minals.llm.listModels();
+  ollamaModelSelect.innerHTML = '';
+  if (error) {
+    ollamaStatus.textContent = `⚠ ${error}`;
+    return;
+  }
+  if (!models || models.length === 0) {
+    ollamaStatus.textContent = 'Keine lokalen Modelle gefunden. "ollama pull <modell>" ausfuehren.';
+    return;
+  }
+  for (const name of models) {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    ollamaModelSelect.appendChild(opt);
+  }
+  if (selectedModel && models.includes(selectedModel)) {
+    ollamaModelSelect.value = selectedModel;
+  }
+  ollamaStatus.textContent = `${models.length} lokale(s) Modell(e) gefunden.`;
+}
+
 async function openSettings() {
   const settings = await window.minals.settings.get();
+  ollamaHost.value = settings.ollamaHost || '';
+  toolsEnabled.checked = settings.toolsEnabled !== false;
   sttBinaryPath.value = settings.sttBinaryPath || '';
   sttModelPath.value = settings.sttModelPath || '';
   ttsBinaryPath.value = settings.ttsBinaryPath || '';
@@ -276,8 +305,7 @@ async function openSettings() {
   voiceEnabled.checked = Boolean(settings.voiceEnabled);
   allowedShellCommands.value = (settings.allowedShellCommands || []).join(', ');
 
-  const hasKey = await window.minals.secrets.hasApiKey();
-  apiKeyStatus.textContent = hasKey ? 'API-Key ist gespeichert.' : 'Kein API-Key hinterlegt.';
+  await refreshModelList(settings.ollamaModel);
 
   settingsOverlay.classList.remove('hidden');
 }
@@ -285,16 +313,15 @@ async function openSettings() {
 settingsBtn.addEventListener('click', openSettings);
 closeSettingsBtn.addEventListener('click', () => settingsOverlay.classList.add('hidden'));
 
-document.getElementById('saveApiKeyBtn').addEventListener('click', async () => {
-  if (!apiKeyInput.value.trim()) return;
-  await window.minals.secrets.setApiKey(apiKeyInput.value.trim());
-  apiKeyInput.value = '';
-  apiKeyStatus.textContent = 'API-Key gespeichert.';
-});
+refreshModelsBtn.addEventListener('click', () => refreshModelList(ollamaModelSelect.value));
 
-document.getElementById('clearApiKeyBtn').addEventListener('click', async () => {
-  await window.minals.secrets.clearApiKey();
-  apiKeyStatus.textContent = 'API-Key entfernt.';
+document.getElementById('saveOllamaSettingsBtn').addEventListener('click', async () => {
+  await window.minals.settings.set({
+    ollamaHost: ollamaHost.value.trim() || 'http://127.0.0.1:11434',
+    ollamaModel: ollamaModelSelect.value || '',
+    toolsEnabled: toolsEnabled.checked
+  });
+  ollamaStatus.textContent = 'Gespeichert.';
 });
 
 document.getElementById('saveVoiceSettingsBtn').addEventListener('click', async () => {
@@ -315,13 +342,21 @@ document.getElementById('saveShellWhitelistBtn').addEventListener('click', async
   await window.minals.settings.set({ allowedShellCommands: list });
 });
 
-// First-run: nudge the user to set up an API key.
+// First-run: check whether a local Ollama model is configured/reachable.
 (async () => {
-  const hasKey = await window.minals.secrets.hasApiKey();
-  if (!hasKey) {
+  const settings = await window.minals.settings.get();
+  const { models, error } = await window.minals.llm.listModels();
+
+  if (error) {
     appendMessage(
       'assistant',
-      'Willkommen bei Minals. Bitte hinterlege zuerst deinen Anthropic API-Key in den Einstellungen (⚙ oben rechts).'
+      `Willkommen bei Minals. Ich finde keinen laufenden Ollama-Server (${error}). Bitte "ollama serve" starten und ein Modell in den Einstellungen (⚙ oben rechts) waehlen.`
+    );
+    openSettings();
+  } else if (!settings.ollamaModel || !(models || []).includes(settings.ollamaModel)) {
+    appendMessage(
+      'assistant',
+      'Willkommen bei Minals. Bitte waehle in den Einstellungen (⚙ oben rechts) ein lokales Ollama-Modell aus.'
     );
     openSettings();
   } else {

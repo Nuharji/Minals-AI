@@ -3,6 +3,9 @@ const Store = require('electron-store');
 const store = new Store({
   name: 'minals-settings',
   defaults: {
+    ollamaHost: 'http://127.0.0.1:11434',
+    ollamaModel: '',
+    toolsEnabled: true,
     wakeWord: 'hey minals',
     voiceEnabled: false,
     sttBinaryPath: '',

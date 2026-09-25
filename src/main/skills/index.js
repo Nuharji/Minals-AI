@@ -1,7 +1,8 @@
 const system = require('./system');
 const reminders = require('./reminders');
 
-// Anthropic tool-use definitions. Keep names in sync with the `handlers` map below.
+// Tool definitions (name/description/JSON-schema input) for the local LLM's
+// function-calling. Keep names in sync with the `handlers` map below.
 const toolDefinitions = [
   {
     name: 'run_shell_command',

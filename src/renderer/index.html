@@ -35,14 +35,21 @@
       <h2>Einstellungen</h2>
 
       <section>
-        <h3>Claude API</h3>
-        <label>Anthropic API-Key</label>
-        <input type="password" id="apiKeyInput" placeholder="sk-ant-…" />
+        <h3>Lokales Sprachmodell (Ollama)</h3>
+        <label>Ollama-Server</label>
+        <input type="text" id="ollamaHost" placeholder="http://127.0.0.1:11434" />
+        <label>Modell</label>
         <div class="row">
-          <button id="saveApiKeyBtn">Speichern</button>
-          <button id="clearApiKeyBtn" class="secondary">Entfernen</button>
+          <select id="ollamaModelSelect"></select>
+          <button type="button" id="refreshModelsBtn" class="secondary" title="Modellliste neu laden">⟳</button>
         </div>
-        <div id="apiKeyStatus" class="status"></div>
+        <div class="row">
+          <label class="checkbox"><input type="checkbox" id="toolsEnabled" /> System-Skills/Tools aktivieren</label>
+        </div>
+        <div class="row">
+          <button id="saveOllamaSettingsBtn">Speichern</button>
+        </div>
+        <div id="ollamaStatus" class="status"></div>
       </section>
 
       <section>

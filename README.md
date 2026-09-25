@@ -1,39 +1,123 @@
 # Minals
 
-Ein für Linux optimierter, Claude-gepowerter KI-Assistent mit einer an Jarvis
-(Iron Man) angelehnten HUD-Oberfläche. Minals führt Konversationen, steuert
-das System (Apps öffnen, Dateien suchen, Erinnerungen setzen, Benachrichtigungen
-senden) und unterstützt optional lokale Sprachein-/ausgabe.
+Ein für Linux optimierter KI-Assistent mit einer an Jarvis (Iron Man)
+angelehnten HUD-Oberfläche. Minals läuft **komplett lokal** – angetrieben
+von einem selbst gehosteten Sprachmodell über [Ollama](https://ollama.com),
+kostenlos, ohne Cloud-API-Key und ohne Zensur-Vorgaben von außen (das
+Verhalten hängt einzig vom gewählten lokalen Modell ab, z. B. unzensierte
+Community-Finetunes).
+
+## Aktueller Funktionsumfang (bereits implementiert)
+
+### KI-Gehirn
+- Anbindung an einen lokalen [Ollama](https://ollama.com)-Server (Standard: `http://127.0.0.1:11434`)
+- Freie Modellwahl: jedes über Ollama installierte Modell nutzbar
+  (z. B. `llama3.1`, `qwen2.5`, `mistral-nemo`, aber auch unzensierte
+  Finetunes wie `dolphin-mistral`, `dolphin-llama3`, `wizardlm-uncensored`,
+  `nous-hermes2-mixtral` …)
+- Dropdown in den Einstellungen listet automatisch alle lokal installierten
+  Modelle (`ollama pull` vorausgesetzt) und lässt sie live neu laden
+- Function-/Tool-Calling: das Modell kann eigenständig die System-Skills
+  unten aufrufen, wenn die Anfrage es erfordert
+- Tool-Nutzung lässt sich pro Einstellung komplett abschalten (z. B. für
+  Modelle ohne Tool-Support – dann reiner Chat)
+- Mehrrundiger Tool-Use-Loop (bis zu 6 Runden pro Anfrage), damit das Modell
+  z. B. erst suchen und dann öffnen kann
+- Gesprächsverlauf bleibt im Chat-Fenster erhalten (Kontext wird bei jeder
+  Anfrage mitgeschickt)
+
+### System-Skills (vom Modell aufrufbare Tools)
+| Skill | Beschreibung |
+|---|---|
+| `run_shell_command` | Führt einen einzelnen Shell-Befehl aus – **nur** wenn er in der Whitelist steht |
+| `open_application` | Startet eine installierte Desktop-App (`gtk-launch`, Fallback `xdg-open`) |
+| `open_path` | Öffnet Datei/Ordner mit der Standardanwendung |
+| `search_files` | Durchsucht ein Verzeichnis (Standard: Home) nach Dateinamen |
+| `list_directory` | Listet Inhalt eines Verzeichnisses |
+| `get_system_info` | CPU, RAM, Uptime, Hostname, Plattform, Load-Average |
+| `send_notification` | Zeigt eine Desktop-Benachrichtigung |
+| `set_reminder` | Setzt einen Timer, der nach X Sekunden als Benachrichtigung auslöst |
+| `list_reminders` | Listet aktive Erinnerungen |
+| `cancel_reminder` | Bricht eine Erinnerung per ID ab |
+
+### Sprachsteuerung (optional, komplett lokal)
+- **STT (Speech-to-Text):** über extern konfiguriertes
+  [whisper.cpp](https://github.com/ggerganov/whisper.cpp)-Binary + Modell
+- **TTS (Text-to-Speech):** über extern konfiguriertes
+  [Piper](https://github.com/rhasspy/piper)-Binary + Stimme
+- Mikrofon-Button (Push-to-Talk) in der Chat-Leiste: Aufnahme startet/stoppt
+  per Klick, Audio wird im Browser zu 16-kHz-Mono-WAV umgewandelt und an
+  whisper.cpp übergeben
+- Antworten werden bei aktivierter Sprachausgabe automatisch über Piper
+  vorgelesen
+- Whisper/Piper sind bewusst **nicht** im Flatpak gebündelt (große Binaries
+  + Modellgewichte) – Pfade werden in den Einstellungen hinterlegt
+
+### Jarvis-artige HUD-Oberfläche
+- Animierter, rotierender Ring-Visualizer auf Canvas-Basis (segmentierter
+  äußerer Ring + pulsierender Kern)
+- Reagiert auf vier Zustände: `idle` (Bereit), `listening` (Höre zu),
+  `thinking` (Denke nach), `speaking` (Spreche) – jeweils eigene Farbe
+  (Cyan / Grün / Gelb / Cyan)
+- Dunkles Sci-Fi-Farbschema (Cyan-Glow auf Dunkelblau/Schwarz)
+- Chat-Log mit unterscheidbaren Bubbles für Nutzer-/Assistenten-/Tool-Nachrichten
+  (Tool-Aufrufe und -Ergebnisse werden live als kompakte Trace-Zeilen angezeigt)
+
+### Einstellungen (⚙-Icon oben rechts)
+- Ollama-Server-URL + Modellwahl (mit „Neu laden“-Button)
+- Umschalter „System-Skills/Tools aktivieren“
+- Pfade für whisper.cpp-Binary/-Modell und Piper-Binary/-Stimme
+- Umschalter „Sprachein-/ausgabe aktivieren“
+- Editierbare Shell-Befehl-Whitelist
+
+### Sicherheit
+- `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true` im
+  BrowserWindow – der Renderer hat **keinen** direkten Node-/Dateisystemzugriff,
+  alles läuft über eine explizite `contextBridge`-API (`src/preload/index.js`)
+- Shell-Befehle laufen über `execFile` (keine Shell-Interpretation/Injection)
+  und ausschließlich mit whitelisted Befehlsnamen
+- Kein Cloud-API-Key mehr nötig – alles bleibt auf dem Rechner, Netzwerk wird
+  nur für den lokalen Ollama-Server gebraucht
+
+### Packaging
+- Flatpak-Manifest (`flatpak/ai.minals.Minals.yml`) auf Basis von
+  `org.electronjs.Electron2.BaseApp`
+- `.desktop`-Datei und AppStream-Metainfo für Flathub-Reife vorbereitet
+- App-Icon vorhanden (`build/icon.png`)
 
 ## Architektur
-
-- **UI/Shell:** Electron (Chromium + Node), Renderer mit Canvas-basiertem HUD
-- **KI:** Anthropic Claude (`@anthropic-ai/sdk`) mit Tool-Use für System-Skills
-- **Sprache (optional, lokal):**
-  - STT: [whisper.cpp](https://github.com/ggerganov/whisper.cpp) (extern, vom Nutzer bereitgestellt)
-  - TTS: [Piper](https://github.com/rhasspy/piper) (extern, vom Nutzer bereitgestellt)
-- **Packaging:** Flatpak (`org.electronjs.Electron2.BaseApp`)
-
-Whisper.cpp und Piper werden bewusst **nicht** im Flatpak gebündelt (große
-native Binaries + Modellgewichte). Stattdessen konfiguriert man in den
-Einstellungen die Pfade zu bereits installierten Binaries/Modellen.
-
-## Projektstruktur
 
 ```
 src/
   main/            Electron Main-Prozess
-    index.js       Fenster, IPC-Handler
-    claude.js       Claude-Client mit Tool-Use-Loop
-    store.js        Settings-Persistenz (electron-store)
-    secrets.js       API-Key via Electron safeStorage
-    skills/          System-Skills (Tools für Claude)
+    index.js        Fenster, IPC-Handler
+    ollama.js        Ollama-Client mit Tool-Use-Loop
+    store.js         Settings-Persistenz (electron-store)
+    skills/          System-Skills (Tools für das lokale Modell)
     voice/           STT/TTS-Anbindung an externe Binaries
   preload/          contextBridge-API für den Renderer
   renderer/         HUD + Chat-UI (HTML/CSS/JS)
 flatpak/            Flatpak-Manifest, .desktop, AppStream-Metainfo
 build/icon.png      App-Icon
 ```
+
+## Setup: Ollama (lokales Modell)
+
+1. Ollama installieren: <https://ollama.com/download> (Linux: Installer-Skript
+   oder natives Paket)
+2. Server starten: `ollama serve` (läuft danach im Hintergrund auf Port 11434)
+3. Ein Modell laden, z. B.:
+   ```bash
+   ollama pull llama3.1          # solide Allround-Wahl mit Tool-Support
+   ollama pull dolphin-mistral   # populäres unzensiertes Finetune
+   ```
+4. Minals starten, in den Einstellungen das Modell aus der Liste wählen und
+   speichern.
+
+> Hinweis: Nicht jedes Modell unterstützt Ollamas Function-/Tool-Calling
+> zuverlässig. Falls Tool-Aufrufe fehlschlagen oder das Modell sie ignoriert,
+> „System-Skills/Tools aktivieren“ in den Einstellungen deaktivieren – Minals
+> funktioniert dann als reiner Chat-Assistent.
 
 ## Entwicklung
 
@@ -42,26 +126,23 @@ npm install
 npm start
 ```
 
-Beim ersten Start nach dem Anthropic API-Key gefragt (Einstellungen-Icon oben
-rechts). Der Key wird verschlüsselt über `safeStorage` lokal gespeichert.
-
 ## Sprachsteuerung aktivieren
 
 1. whisper.cpp bauen/installieren und ein Modell herunterladen
    (z. B. `ggml-base.bin` oder ein deutsches/mehrsprachiges Modell).
 2. Piper installieren und eine Stimme herunterladen (z. B. `de_DE-*.onnx`).
 3. In den Minals-Einstellungen die Pfade zu beiden Binaries + Modellen/Stimmen
-   eintragen und "Sprachein-/ausgabe aktivieren" anhaken.
+   eintragen und „Sprachein-/ausgabe aktivieren“ anhaken.
 4. Mikrofon-Button in der Chat-Leiste nutzen (Push-to-talk: klicken zum
    Start/Stop der Aufnahme).
 
 ## Erlaubte Shell-Befehle
 
-Aus Sicherheitsgründen darf Claude nur Shell-Befehle ausführen, die explizit
-in der Whitelist (Einstellungen) stehen. Standardmäßig sind das harmlose
-Befehle wie `ls`, `df`, `uptime`, `uname`, `free`. Diese Liste bei Bedarf
-erweitern – aber mit Bedacht, da Claude autonom entscheidet, wann ein Tool
-aufgerufen wird.
+Aus Sicherheitsgründen darf das Modell nur Shell-Befehle ausführen, die
+explizit in der Whitelist (Einstellungen) stehen. Standardmäßig sind das
+harmlose Befehle wie `ls`, `df`, `uptime`, `uname`, `free`. Diese Liste bei
+Bedarf erweitern – aber mit Bedacht, da das Modell autonom entscheidet, wann
+ein Tool aufgerufen wird.
 
 ## Flatpak-Build
 
@@ -73,7 +154,6 @@ Für reproduzierbare, offline-fähige npm-Abhängigkeiten wird empfohlen,
 zu verwenden:
 
 ```bash
-pip install --user flatpak-builder-tools/node/requirements.txt  # falls benötigt
 python3 flatpak-node-generator.py npm package-lock.json -o flatpak/generated-sources.json
 ```
 
@@ -85,18 +165,14 @@ flatpak-builder --user --install --force-clean build-dir flatpak/ai.minals.Minal
 flatpak run ai.minals.Minals
 ```
 
-## Sicherheit
+Da `--share=network` gesetzt ist, teilt sich das Flatpak-Sandbox den
+Netzwerk-Namespace mit dem Host – der lokale Ollama-Server unter
+`127.0.0.1:11434` ist damit aus der Flatpak-App heraus erreichbar.
 
-- `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true` im
-  BrowserWindow – der Renderer hat keinen direkten Node-/Dateisystemzugriff,
-  alles läuft über die explizite `preload`-API.
-- Shell-Befehle laufen über `execFile` (keine Shell-Interpretation) und nur
-  mit whitelisted Befehlsnamen.
-- API-Key wird nie im Klartext persistiert (Electron `safeStorage`).
+## Noch nicht implementiert (Roadmap)
 
-## Roadmap
-
-- Wake-Word-Erkennung ("Hey Minals")
-- Persistentes Konversationsgedächtnis über Sessions hinweg
+- Wake-Word-Erkennung („Hey Minals“) für freihändige Aktivierung
+- Persistentes Konversationsgedächtnis über App-Neustarts hinweg
 - Weitere Skills: Kalender, Web-Suche, Mediensteuerung
+- Automatisches Herunterladen/Verwalten von whisper.cpp/Piper aus der App heraus
 - Flathub-Submission

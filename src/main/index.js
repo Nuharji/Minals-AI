@@ -3,8 +3,7 @@ const path = require('path');
 const fs = require('fs/promises');
 
 const store = require('./store');
-const secrets = require('./secrets');
-const claude = require('./claude');
+const ollama = require('./ollama');
 const stt = require('./voice/stt');
 const tts = require('./voice/tts');
 
@@ -41,7 +40,7 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
-// ---- IPC: settings & secrets ----
+// ---- IPC: settings ----
 
 ipcMain.handle('settings:get', () => store.store);
 
@@ -52,24 +51,14 @@ ipcMain.handle('settings:set', (_evt, partial) => {
   return store.store;
 });
 
-ipcMain.handle('secrets:setApiKey', (_evt, apiKey) => {
-  secrets.saveApiKey(apiKey);
-  return { success: true };
-});
+// ---- IPC: local LLM (Ollama) ----
 
-ipcMain.handle('secrets:hasApiKey', () => Boolean(secrets.getApiKey()));
-
-ipcMain.handle('secrets:clearApiKey', () => {
-  secrets.clearApiKey();
-  return { success: true };
-});
-
-// ---- IPC: conversation ----
+ipcMain.handle('llm:listModels', () => ollama.listModels());
 
 ipcMain.handle('chat:send', async (evt, { history, text }) => {
   const messages = [...history, { role: 'user', content: text }];
   try {
-    const { text: replyText, messages: fullMessages } = await claude.runTurn(messages, (event) => {
+    const { text: replyText, messages: fullMessages } = await ollama.runTurn(messages, (event) => {
       evt.sender.send('chat:event', event);
     });
     return { text: replyText, messages: fullMessages };

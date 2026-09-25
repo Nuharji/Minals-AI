@@ -17,7 +17,9 @@ finish-args:
   - --filesystem=xdg-download
   - --filesystem=home:ro
   - --talk-name=org.freedesktop.Notifications
-  - --talk-name=org.freedesktop.secrets
+  # --share=network erlaubt auch den Zugriff auf einen lokal laufenden
+  # Ollama-Server (z.B. http://127.0.0.1:11434), da der Netzwerk-Namespace
+  # mit dem Host geteilt wird.
   # Erlaubt Zugriff auf lokal vom Nutzer installierte whisper.cpp/Piper-Binaries
   # ausserhalb des Sandbox-Prefixes, z.B. unter /opt oder /usr/local.
   - --filesystem=/opt:ro
