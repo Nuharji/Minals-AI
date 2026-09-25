@@ -117,6 +117,17 @@ html, body {
   border: 1px solid var(--accent-dim);
 }
 
+.msg.assistant.image {
+  padding: 6px;
+  max-width: 60%;
+}
+
+.msg.assistant.image img {
+  display: block;
+  max-width: 100%;
+  border-radius: 6px;
+}
+
 .msg.tool {
   align-self: flex-start;
   font-size: 12px;

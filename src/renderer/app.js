@@ -101,13 +101,33 @@ function appendToolTrace(text) {
   el.textContent = text;
   chatLog.appendChild(el);
   chatLog.scrollTop = chatLog.scrollHeight;
+  return el;
+}
+
+async function appendGeneratedImage(imagePath) {
+  const { base64, error } = await window.minals.images.read(imagePath);
+  if (error) {
+    appendToolTrace(`⚠ Bild konnte nicht geladen werden: ${error}`);
+    return;
+  }
+  const wrapper = document.createElement('div');
+  wrapper.className = 'msg assistant image';
+  const img = document.createElement('img');
+  img.src = `data:image/png;base64,${base64}`;
+  wrapper.appendChild(img);
+  chatLog.appendChild(wrapper);
+  chatLog.scrollTop = chatLog.scrollHeight;
 }
 
 window.minals.chat.onEvent((event) => {
   if (event.type === 'tool_call') {
     appendToolTrace(`⚙ ${event.name}(${JSON.stringify(event.input)})`);
   } else if (event.type === 'tool_result') {
-    appendToolTrace(`→ ${JSON.stringify(event.result).slice(0, 300)}`);
+    if (event.name === 'generate_image' && event.result && event.result.success) {
+      appendGeneratedImage(event.result.path);
+    } else {
+      appendToolTrace(`→ ${JSON.stringify(event.result).slice(0, 300)}`);
+    }
   }
 });
 
@@ -269,6 +289,8 @@ const ttsBinaryPath = document.getElementById('ttsBinaryPath');
 const ttsVoicePath = document.getElementById('ttsVoicePath');
 const voiceEnabled = document.getElementById('voiceEnabled');
 const allowedShellCommands = document.getElementById('allowedShellCommands');
+const sdHost = document.getElementById('sdHost');
+const sdNegativePrompt = document.getElementById('sdNegativePrompt');
 
 async function refreshModelList(selectedModel) {
   ollamaStatus.textContent = 'Suche laufenden Ollama-Server…';
@@ -304,6 +326,8 @@ async function openSettings() {
   ttsVoicePath.value = settings.ttsVoicePath || '';
   voiceEnabled.checked = Boolean(settings.voiceEnabled);
   allowedShellCommands.value = (settings.allowedShellCommands || []).join(', ');
+  sdHost.value = settings.sdHost || '';
+  sdNegativePrompt.value = settings.sdNegativePrompt || '';
 
   await refreshModelList(settings.ollamaModel);
 
@@ -331,6 +355,13 @@ document.getElementById('saveVoiceSettingsBtn').addEventListener('click', async 
     ttsBinaryPath: ttsBinaryPath.value.trim(),
     ttsVoicePath: ttsVoicePath.value.trim(),
     voiceEnabled: voiceEnabled.checked
+  });
+});
+
+document.getElementById('saveSdSettingsBtn').addEventListener('click', async () => {
+  await window.minals.settings.set({
+    sdHost: sdHost.value.trim() || 'http://127.0.0.1:7860',
+    sdNegativePrompt: sdNegativePrompt.value.trim()
   });
 });
 

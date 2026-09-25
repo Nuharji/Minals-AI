@@ -19,5 +19,8 @@ contextBridge.exposeInMainWorld('minals', {
   voice: {
     transcribe: (wavBase64) => ipcRenderer.invoke('voice:transcribe', wavBase64),
     speak: (text) => ipcRenderer.invoke('voice:speak', text)
+  },
+  images: {
+    read: (filePath) => ipcRenderer.invoke('images:read', filePath)
   }
 });

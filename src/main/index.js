@@ -6,6 +6,7 @@ const store = require('./store');
 const ollama = require('./ollama');
 const stt = require('./voice/stt');
 const tts = require('./voice/tts');
+const { imagesDir } = require('./skills/imagegen');
 
 let mainWindow;
 
@@ -81,6 +82,22 @@ ipcMain.handle('voice:speak', async (_evt, text) => {
     const audioBuffer = await fs.readFile(result.wavPath);
     await result.cleanup();
     return { audioBase64: audioBuffer.toString('base64') };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+// ---- IPC: generated images ----
+
+ipcMain.handle('images:read', async (_evt, filePath) => {
+  const dir = imagesDir();
+  const resolved = path.resolve(filePath);
+  if (!resolved.startsWith(dir + path.sep)) {
+    return { error: 'Zugriff verweigert: Pfad liegt ausserhalb des Bilder-Verzeichnisses.' };
+  }
+  try {
+    const buffer = await fs.readFile(resolved);
+    return { base64: buffer.toString('base64') };
   } catch (err) {
     return { error: err.message };
   }

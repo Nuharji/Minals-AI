@@ -1,5 +1,6 @@
 const system = require('./system');
 const reminders = require('./reminders');
+const imagegen = require('./imagegen');
 
 // Tool definitions (name/description/JSON-schema input) for the local LLM's
 // function-calling. Keep names in sync with the `handlers` map below.
@@ -110,6 +111,22 @@ const toolDefinitions = [
       properties: { id: { type: 'number' } },
       required: ['id']
     }
+  },
+  {
+    name: 'generate_image',
+    description:
+      'Generiert ein Bild lokal ueber einen selbst gehosteten Stable-Diffusion-Server (Automatic1111-API) aus einer Text-Beschreibung. Laeuft komplett offline auf dem Rechner des Nutzers.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        prompt: { type: 'string', description: 'Bildbeschreibung (Englisch funktioniert meist am besten)' },
+        negativePrompt: { type: 'string', description: 'Was im Bild vermieden werden soll (optional)' },
+        width: { type: 'number', description: 'Bildbreite in Pixel, Standard 512' },
+        height: { type: 'number', description: 'Bildhoehe in Pixel, Standard 512' },
+        steps: { type: 'number', description: 'Sampling-Schritte, Standard 25' }
+      },
+      required: ['prompt']
+    }
   }
 ];
 
@@ -123,7 +140,8 @@ const handlers = {
   send_notification: system.sendNotification,
   set_reminder: reminders.setReminder,
   list_reminders: reminders.listReminders,
-  cancel_reminder: reminders.cancelReminder
+  cancel_reminder: reminders.cancelReminder,
+  generate_image: imagegen.generateImage
 };
 
 async function executeTool(name, input) {

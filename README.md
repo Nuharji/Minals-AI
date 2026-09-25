@@ -2,10 +2,12 @@
 
 Ein für Linux optimierter KI-Assistent mit einer an Jarvis (Iron Man)
 angelehnten HUD-Oberfläche. Minals läuft **komplett lokal** – angetrieben
-von einem selbst gehosteten Sprachmodell über [Ollama](https://ollama.com),
+von einem selbst gehosteten Sprachmodell über [Ollama](https://ollama.com)
+und optional lokaler Bildgenerierung über
+[Automatic1111](https://github.com/AUTOMATIC1111/stable-diffusion-webui),
 kostenlos, ohne Cloud-API-Key und ohne Zensur-Vorgaben von außen (das
-Verhalten hängt einzig vom gewählten lokalen Modell ab, z. B. unzensierte
-Community-Finetunes).
+Verhalten hängt einzig von den gewählten lokalen Modellen ab, z. B.
+unzensierte Community-Finetunes/-Checkpoints).
 
 ## Aktueller Funktionsumfang (bereits implementiert)
 
@@ -41,6 +43,7 @@ Community-Finetunes).
 | `set_reminder` | Setzt einen Timer, der nach X Sekunden als Benachrichtigung auslöst |
 | `list_reminders` | Listet aktive Erinnerungen |
 | `cancel_reminder` | Bricht eine Erinnerung per ID ab |
+| `generate_image` | Generiert ein Bild lokal über Stable Diffusion (Automatic1111-API) aus einer Text-Beschreibung |
 
 ### Sprachsteuerung (optional, komplett lokal)
 - **STT (Speech-to-Text):** über extern konfiguriertes
@@ -54,6 +57,20 @@ Community-Finetunes).
   vorgelesen
 - Whisper/Piper sind bewusst **nicht** im Flatpak gebündelt (große Binaries
   + Modellgewichte) – Pfade werden in den Einstellungen hinterlegt
+
+### Bildgenerierung (optional, komplett lokal)
+- Anbindung an einen lokalen [Automatic1111](https://github.com/AUTOMATIC1111/stable-diffusion-webui)-Server
+  (Standard: `http://127.0.0.1:7860`) über dessen `/sdapi/v1/txt2img`-API
+- Das Modell ruft `generate_image` eigenständig auf, wenn im Chat nach einem
+  Bild gefragt wird – Prompt, optionaler Negativ-Prompt, Breite/Höhe/Steps
+  werden vom Modell selbst befüllt
+- Frei wählbares Stable-Diffusion-Checkpoint (SD1.5/SDXL, inkl. beliebiger
+  unzensierter Community-Checkpoints) – Minals selbst filtert nichts, die
+  Ausgabe hängt komplett vom in Automatic1111 geladenen Checkpoint ab
+- Erzeugte Bilder werden lokal unter `<userData>/generated-images/` als PNG
+  gespeichert und direkt als Bild-Bubble im Chat angezeigt (base64 läuft
+  nur intern über IPC, nicht durch den LLM-Kontext, um dessen Context-Window
+  nicht mit Bilddaten zu fluten)
 
 ### Jarvis-artige HUD-Oberfläche
 - Animierter, rotierender Ring-Visualizer auf Canvas-Basis (segmentierter
@@ -70,6 +87,7 @@ Community-Finetunes).
 - Umschalter „System-Skills/Tools aktivieren“
 - Pfade für whisper.cpp-Binary/-Modell und Piper-Binary/-Stimme
 - Umschalter „Sprachein-/ausgabe aktivieren“
+- Automatic1111-Server-URL + optionaler Standard-Negativ-Prompt
 - Editierbare Shell-Befehl-Whitelist
 
 ### Sicherheit
@@ -79,7 +97,9 @@ Community-Finetunes).
 - Shell-Befehle laufen über `execFile` (keine Shell-Interpretation/Injection)
   und ausschließlich mit whitelisted Befehlsnamen
 - Kein Cloud-API-Key mehr nötig – alles bleibt auf dem Rechner, Netzwerk wird
-  nur für den lokalen Ollama-Server gebraucht
+  nur für lokale Server (Ollama, optional Automatic1111) gebraucht
+- Der `images:read`-IPC-Handler liefert nur Dateien aus dem eigenen
+  `generated-images/`-Verzeichnis der App aus (Pfad-Traversal wird abgewiesen)
 
 ### Packaging
 - Flatpak-Manifest (`flatpak/ai.minals.Minals.yml`) auf Basis von
@@ -95,7 +115,7 @@ src/
     index.js        Fenster, IPC-Handler
     ollama.js        Ollama-Client mit Tool-Use-Loop
     store.js         Settings-Persistenz (electron-store)
-    skills/          System-Skills (Tools für das lokale Modell)
+    skills/          System-Skills (Tools für das lokale Modell, inkl. imagegen.js)
     voice/           STT/TTS-Anbindung an externe Binaries
   preload/          contextBridge-API für den Renderer
   renderer/         HUD + Chat-UI (HTML/CSS/JS)
@@ -158,6 +178,29 @@ npm start
 4. Mikrofon-Button in der Chat-Leiste nutzen (Push-to-talk: klicken zum
    Start/Stop der Aufnahme).
 
+## Bildgenerierung aktivieren
+
+1. [Automatic1111 (Stable Diffusion WebUI)](https://github.com/AUTOMATIC1111/stable-diffusion-webui)
+   installieren.
+2. Mindestens ein Checkpoint (`.safetensors`) in `models/Stable-diffusion/`
+   legen (z. B. ein SD1.5- oder SDXL-Modell; jedes mit Automatic1111
+   kompatible Checkpoint funktioniert, inkl. Community-Checkpoints ohne
+   eingebaute Inhaltsfilter).
+3. Mit aktivierter API starten:
+   ```bash
+   ./webui.sh --api
+   ```
+   (läuft danach standardmäßig auf `http://127.0.0.1:7860`)
+4. In den Minals-Einstellungen unter „Bildgenerierung (lokal, Stable
+   Diffusion)“ die Server-URL prüfen/anpassen und speichern.
+5. Im Chat z. B. schreiben: *„Generier mir ein Bild von einer Katze im
+   Weltraum“* – das Modell ruft daraufhin `generate_image` auf, das Ergebnis
+   erscheint als Bild direkt im Chat.
+
+> Wie beim Sprachmodell gilt: Minals selbst filtert keine Bildinhalte – das
+> Verhalten hängt komplett vom in Automatic1111 geladenen Checkpoint ab.
+> Verantwortung für Inhalte und Nutzung liegt beim Betreiber des Rechners.
+
 ## Erlaubte Shell-Befehle
 
 Aus Sicherheitsgründen darf das Modell nur Shell-Befehle ausführen, die
@@ -188,13 +231,16 @@ flatpak run ai.minals.Minals
 ```
 
 Da `--share=network` gesetzt ist, teilt sich das Flatpak-Sandbox den
-Netzwerk-Namespace mit dem Host – der lokale Ollama-Server unter
-`127.0.0.1:11434` ist damit aus der Flatpak-App heraus erreichbar.
+Netzwerk-Namespace mit dem Host – lokale Server wie Ollama (`127.0.0.1:11434`)
+und Automatic1111 (`127.0.0.1:7860`) sind damit aus der Flatpak-App heraus
+erreichbar.
 
 ## Noch nicht implementiert (Roadmap)
 
 - Wake-Word-Erkennung („Hey Minals“) für freihändige Aktivierung
 - Persistentes Konversationsgedächtnis über App-Neustarts hinweg
 - Weitere Skills: Kalender, Web-Suche, Mediensteuerung
-- Automatisches Herunterladen/Verwalten von whisper.cpp/Piper aus der App heraus
+- Automatisches Herunterladen/Verwalten von whisper.cpp/Piper/Automatic1111
+  aus der App heraus
+- Bild-zu-Bild (img2img), Upscaling, Galerie/Verwaltung generierter Bilder
 - Flathub-Submission

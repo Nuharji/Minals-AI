@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:" />
 <title>Minals</title>
 <link rel="stylesheet" href="styles.css" />
 </head>
@@ -68,6 +68,18 @@
         <div class="row">
           <button id="saveVoiceSettingsBtn">Speichern</button>
         </div>
+      </section>
+
+      <section>
+        <h3>Bildgenerierung (lokal, Stable Diffusion)</h3>
+        <label>Automatic1111-Server</label>
+        <input type="text" id="sdHost" placeholder="http://127.0.0.1:7860" />
+        <label>Standard-Negativ-Prompt (optional)</label>
+        <input type="text" id="sdNegativePrompt" placeholder="blurry, low quality" />
+        <div class="row">
+          <button id="saveSdSettingsBtn">Speichern</button>
+        </div>
+        <div class="status">Erfordert eine laufende Automatic1111-Instanz mit <code>--api</code>-Flag.</div>
       </section>
 
       <section>
