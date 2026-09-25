@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Minals
+GenericName=KI-Assistent
+Comment=Claude-gepowerter Jarvis-artiger Sprachassistent
+Exec=minals %U
+Terminal=false
+Type=Application
+Icon=ai.minals.Minals
+Categories=Utility;
+StartupWMClass=Minals
+X-GNOME-UsesNotifications=true

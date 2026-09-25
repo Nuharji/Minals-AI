@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+<title>Minals</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header id="topbar">
+      <div class="brand">MINALS</div>
+      <button id="settingsBtn" title="Einstellungen">⚙</button>
+    </header>
+
+    <main id="main">
+      <div id="hud">
+        <canvas id="hudCanvas" width="360" height="360"></canvas>
+        <div id="hudStatus">Bereit</div>
+      </div>
+
+      <div id="chatPanel">
+        <div id="chatLog"></div>
+        <form id="chatForm">
+          <button type="button" id="micBtn" title="Sprechen">🎤</button>
+          <input type="text" id="chatInput" placeholder="Sag etwas zu Minals…" autocomplete="off" />
+          <button type="submit" id="sendBtn">Senden</button>
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <div id="settingsOverlay" class="hidden">
+    <div id="settingsPanel">
+      <h2>Einstellungen</h2>
+
+      <section>
+        <h3>Claude API</h3>
+        <label>Anthropic API-Key</label>
+        <input type="password" id="apiKeyInput" placeholder="sk-ant-…" />
+        <div class="row">
+          <button id="saveApiKeyBtn">Speichern</button>
+          <button id="clearApiKeyBtn" class="secondary">Entfernen</button>
+        </div>
+        <div id="apiKeyStatus" class="status"></div>
+      </section>
+
+      <section>
+        <h3>Sprachsteuerung (lokal)</h3>
+        <label>whisper.cpp Binary-Pfad</label>
+        <input type="text" id="sttBinaryPath" placeholder="/usr/local/bin/whisper-cli" />
+        <label>whisper.cpp Modell-Pfad</label>
+        <input type="text" id="sttModelPath" placeholder="/pfad/zu/ggml-base.bin" />
+        <label>Piper Binary-Pfad</label>
+        <input type="text" id="ttsBinaryPath" placeholder="/usr/local/bin/piper" />
+        <label>Piper Stimme (.onnx)</label>
+        <input type="text" id="ttsVoicePath" placeholder="/pfad/zu/de_DE-voice.onnx" />
+        <div class="row">
+          <label class="checkbox"><input type="checkbox" id="voiceEnabled" /> Sprachein-/ausgabe aktivieren</label>
+        </div>
+        <div class="row">
+          <button id="saveVoiceSettingsBtn">Speichern</button>
+        </div>
+      </section>
+
+      <section>
+        <h3>Erlaubte Shell-Befehle (Whitelist)</h3>
+        <textarea id="allowedShellCommands" rows="3" placeholder="ls, df, uptime, uname, free"></textarea>
+        <div class="row">
+          <button id="saveShellWhitelistBtn">Speichern</button>
+        </div>
+      </section>
+
+      <div class="row">
+        <button id="closeSettingsBtn" class="secondary">Schliessen</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

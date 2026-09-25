@@ -1,0 +1,10 @@
+node_modules/
+dist/
+build/*.icns
+build/*.ico
+.flatpak-builder/
+repo/
+*.flatpak
+flatpak/generated-sources.json
+.DS_Store
+*.log

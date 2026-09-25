@@ -1,0 +1,51 @@
+id: ai.minals.Minals
+runtime: org.freedesktop.Platform
+runtime-version: '23.08'
+sdk: org.freedesktop.Sdk
+base: org.electronjs.Electron2.BaseApp
+base-version: '23.08'
+command: minals
+
+finish-args:
+  - --share=ipc
+  - --socket=x11
+  - --socket=wayland
+  - --socket=pulseaudio
+  - --share=network
+  - --device=dri
+  - --filesystem=xdg-documents
+  - --filesystem=xdg-download
+  - --filesystem=home:ro
+  - --talk-name=org.freedesktop.Notifications
+  - --talk-name=org.freedesktop.secrets
+  # Erlaubt Zugriff auf lokal vom Nutzer installierte whisper.cpp/Piper-Binaries
+  # ausserhalb des Sandbox-Prefixes, z.B. unter /opt oder /usr/local.
+  - --filesystem=/opt:ro
+  - --filesystem=/usr/local:ro
+
+modules:
+  - name: minals
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/node18/bin
+      env:
+        npm_config_nodedir: /usr/lib/sdk/node18
+        XDG_CACHE_HOME: /run/build/minals/flatpak-node/cache
+        npm_config_offline: 'true'
+    build-commands:
+      - npm install --offline --cache /run/build/minals/flatpak-node/cache
+      - npm run build:linux -- --dir
+      - mkdir -p /app/minals
+      - cp -r dist/linux-unpacked/* /app/minals/
+      - install -Dm755 flatpak/minals.sh /app/bin/minals
+      - install -Dm644 flatpak/ai.minals.Minals.desktop /app/share/applications/ai.minals.Minals.desktop
+      - install -Dm644 flatpak/ai.minals.Minals.metainfo.xml /app/share/metainfo/ai.minals.Minals.metainfo.xml
+      - install -Dm644 build/icon.png /app/share/icons/hicolor/512x512/apps/ai.minals.Minals.png
+    sources:
+      - type: dir
+        path: ..
+      # In CI/lokal: flatpak-node-generator (aus flatpak-builder-tools) verwenden,
+      # um eine generated-sources.json fuer npm-Abhaengigkeiten offline-reproduzierbar
+      # einzubinden, z.B.:
+      #   flatpak-node-generator npm package-lock.json -o flatpak/generated-sources.json
+      # und hier per "- generated-sources.json" referenzieren.
