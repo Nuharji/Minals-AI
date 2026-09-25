@@ -4,7 +4,7 @@ const store = new Store({
   name: 'minals-settings',
   defaults: {
     ollamaHost: 'http://127.0.0.1:11434',
-    ollamaModel: '',
+    ollamaModel: 'huihui_ai/qwen3.5-abliterated:9b',
     toolsEnabled: true,
     wakeWord: 'hey minals',
     voiceEnabled: false,

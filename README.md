@@ -13,8 +13,10 @@ Community-Finetunes).
 - Anbindung an einen lokalen [Ollama](https://ollama.com)-Server (Standard: `http://127.0.0.1:11434`)
 - Freie Modellwahl: jedes über Ollama installierte Modell nutzbar
   (z. B. `llama3.1`, `qwen2.5`, `mistral-nemo`, aber auch unzensierte
-  Finetunes wie `dolphin-mistral`, `dolphin-llama3`, `wizardlm-uncensored`,
-  `nous-hermes2-mixtral` …)
+  Finetunes/Abliterationen wie das voreingestellte
+  `huihui_ai/qwen3.5-abliterated`, `dolphin-mistral`, `dolphin-llama3` …)
+- Standardmodell ab Werk: `huihui_ai/qwen3.5-abliterated:9b` (unzensiertes
+  Qwen3.5 via Abliteration, muss lokal per `ollama pull` geladen werden)
 - Dropdown in den Einstellungen listet automatisch alle lokal installierten
   Modelle (`ollama pull` vorausgesetzt) und lässt sie live neu laden
 - Function-/Tool-Calling: das Modell kann eigenständig die System-Skills
@@ -108,16 +110,36 @@ build/icon.png      App-Icon
 2. Server starten: `ollama serve` (läuft danach im Hintergrund auf Port 11434)
 3. Ein Modell laden, z. B.:
    ```bash
-   ollama pull llama3.1          # solide Allround-Wahl mit Tool-Support
-   ollama pull dolphin-mistral   # populäres unzensiertes Finetune
+   ollama pull llama3.1                          # solide Allround-Wahl mit Tool-Support
+   ollama pull huihui_ai/qwen3.5-abliterated:9b   # unzensiertes Qwen3.5 (Standard in Minals)
    ```
-4. Minals starten, in den Einstellungen das Modell aus der Liste wählen und
-   speichern.
 
-> Hinweis: Nicht jedes Modell unterstützt Ollamas Function-/Tool-Calling
+   `huihui_ai/qwen3.5-abliterated` (Ollama-Standardmodell dieses Projekts) ist
+   per „Abliteration“ von Sicherheits-Refusals befreit und in mehreren Größen
+   verfügbar – je nach Hardware wählen:
+
+   | Tag | Größe | Empfehlung |
+   |---|---|---|
+   | `:0.8B` / `:4B` | sehr klein | schwache Antwortqualität, läuft auf fast jeder CPU |
+   | `:9b` | mittel | guter Kompromiss, Standard in Minals, läuft auf den meisten Laptops (8 GB+ RAM/VRAM) |
+   | `:27b` / `:35b` | groß | deutlich besser, braucht starke GPU (16 GB+ VRAM) |
+   | `:35b-a3b` | MoE (35B, 3B aktiv) | großes Modell mit schneller Inferenz, guter Mittelweg für 16 GB+ RAM |
+
+   Alternative: `jaahas/qwen3.5-uncensored`.
+
+4. Minals starten, in den Einstellungen das Modell aus der Liste wählen und
+   speichern (Standard ist bereits auf `huihui_ai/qwen3.5-abliterated:9b`
+   voreingestellt).
+
+> Hinweis 1: Nicht jedes Modell unterstützt Ollamas Function-/Tool-Calling
 > zuverlässig. Falls Tool-Aufrufe fehlschlagen oder das Modell sie ignoriert,
 > „System-Skills/Tools aktivieren“ in den Einstellungen deaktivieren – Minals
 > funktioniert dann als reiner Chat-Assistent.
+>
+> Hinweis 2: Abliterierte/unzensierte Modelle entfernen gezielt eingebaute
+> Sicherheitsmechanismen. Die Verantwortung für Inhalte und Nutzung liegt
+> beim Betreiber des Rechners – Minals selbst filtert nichts, das Verhalten
+> hängt komplett vom gewählten Modell ab.
 
 ## Entwicklung
 
